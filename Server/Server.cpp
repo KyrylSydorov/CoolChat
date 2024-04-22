@@ -1,6 +1,10 @@
 // Kyryl Sydorov, 2024
 
+#include <ws2tcpip.h>
+
 #include "Server.h"
+
+#include "Session.h"
 
 // Link with ws2_32.lib
 #pragma comment(lib, "Ws2_32.lib")
@@ -47,9 +51,6 @@ void Server::createListeningSocket()
         return;
     }
 
-    u_long mode = 1; // Enable non-blocking socket
-    ioctlsocket(_listenSocket, FIONBIO, &mode);
-
     sockaddr_in service;
     service.sin_family = AF_INET;
     service.sin_port = htons(12345); // Listening port
@@ -69,6 +70,10 @@ void Server::createListeningSocket()
         closesocket(_listenSocket);
         WSACleanup();
     }
+
+    DWORD timeout = 10000;
+    setsockopt(_listenSocket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
+    setsockopt(_listenSocket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
 }
 
 void Server::runServer()
@@ -80,7 +85,6 @@ void Server::runServer()
     
     fd_set readFds;
     FD_ZERO(&_masterSet);
-    FD_ZERO(&_queuedSet);
     FD_SET(_listenSocket, &_masterSet);
     _maxSocket = _listenSocket;
 
@@ -114,19 +118,7 @@ void Server::runServer()
                     handleClientData(i);
                 }
             }
-
-            if (FD_ISSET(i, &_writeSet) && !_messages[i].empty())
-            {
-                int bytesSent = send(i, _messages[i].c_str(), _messages[i].size(), 0);
-                if (bytesSent > 0)
-                {
-                    _messages[i].erase(0, bytesSent);
-                }
-
-                std::cout << i << " - Bytes sent: " << bytesSent << std::endl;
-            }
         }
-        std::cout << "Loop iteration" << std::endl;
     }
 }
 
@@ -143,36 +135,35 @@ void Server::handleNewConnection()
 
     char client_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(clientInfo.sin_addr), client_ip, INET_ADDRSTRLEN);
-    std::cout << "New connection from " << client_ip << ":" << ntohs(clientInfo.sin_port) << std::endl;
-
-    u_long mode = 1; // Enable non-blocking mode for the new socket
-    ioctlsocket(clientSocket, FIONBIO, &mode);
+    //std::cout << "New connection from " << client_ip << ":" << ntohs(clientInfo.sin_port) << std::endl;
+    
     FD_SET(clientSocket, &_masterSet);
     if (clientSocket > _maxSocket)
     {
         _maxSocket = clientSocket;
     }
-    _messages[clientSocket] = ""; // Initialize message buffer for this socket
+
+    _sessions[clientSocket] = Session::create(*this, clientSocket);
+
+    DWORD timeout = 10000;
+    setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
+    setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
 }
 
 void Server::handleClientData(SOCKET clientSocket)
 {
-    // Marking this socket as queued for I/O
-    FD_SET(clientSocket, &_queuedSet);
-    
-    char buffer[1024]; // Data buffer for incoming data
-    const int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-    if (bytesRead > 0)
+    const std::shared_ptr<Session> session = _sessions[clientSocket];
+    if (!session)
     {
-        _messages[clientSocket].append(buffer, bytesRead);
+        return;
     }
-    else
+
+    if (session->isReceivingInProgress())
     {
-        if (bytesRead == 0 || (bytesRead < 0 && WSAGetLastError() != WSAEWOULDBLOCK))
-        {
-            closeConnection(clientSocket);
-        }
+        return;
     }
+
+    session->receive();
 }
 
 void Server::closeConnection(SOCKET clientSocket)
@@ -180,7 +171,7 @@ void Server::closeConnection(SOCKET clientSocket)
     std::cout << "Closing connection " << clientSocket << std::endl;
     closesocket(clientSocket);
     FD_CLR(clientSocket, &_masterSet);
-    _messages.erase(clientSocket);
+    _sessions.erase(clientSocket);
 }
 
 void Server::cleanup()
@@ -189,7 +180,7 @@ void Server::cleanup()
     {
         if (FD_ISSET(i, &_masterSet))
         {
-            closesocket(i);
+            closeConnection(i);
         }
     }
     WSACleanup();

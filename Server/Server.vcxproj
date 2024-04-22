@@ -94,6 +94,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -156,13 +157,25 @@
   <ItemGroup>
     <ClCompile Include="AsyncTask.cpp" />
     <ClCompile Include="AsyncTaskManager.cpp" />
+    <ClCompile Include="AsyncTasks.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Constants.cpp" />
+    <ClCompile Include="MessageManager.cpp" />
     <ClCompile Include="Server.cpp" />
+    <ClCompile Include="Session.cpp" />
+    <ClCompile Include="UserManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsyncTask.h" />
     <ClInclude Include="AsyncTaskManager.h" />
+    <ClInclude Include="AsyncTasks.h" />
+    <ClInclude Include="Constants.h" />
+    <ClInclude Include="MessageManager.h" />
+    <ClInclude Include="Pool\SafePool.h" />
+    <ClInclude Include="Pool\SharedFromThis.h" />
     <ClInclude Include="Server.h" />
+    <ClInclude Include="Session.h" />
+    <ClInclude Include="UserManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

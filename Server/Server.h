@@ -3,9 +3,12 @@
 #pragma once
 
 #include <winsock2.h>
-#include <ws2tcpip.h>
 #include <iostream>
 #include <unordered_map>
+
+#include "AsyncTaskManager.h"
+
+class Session;
 
 class Server
 {
@@ -14,6 +17,9 @@ public:
     ~Server();
     
     void start();
+    void closeConnection(SOCKET clientSocket);
+
+    AsyncTaskManager& getTaskManager() { return _taskManager; }
     
 private:
     bool initializeWinsock();
@@ -21,10 +27,9 @@ private:
     void runServer();
     void handleNewConnection();
     void handleClientData(SOCKET clientSocket);
-    void closeConnection(SOCKET clientSocket);
     void cleanup();
 
-    std::unordered_map<SOCKET, std::string> _messages;
+    std::unordered_map<SOCKET, std::shared_ptr<Session>> _sessions;
     
     fd_set _masterSet;
     fd_set _writeSet;
@@ -32,5 +37,5 @@ private:
     SOCKET _listenSocket = INVALID_SOCKET;
     SOCKET _maxSocket = INVALID_SOCKET;
 
-    fd_set _queuedSet;
+    AsyncTaskManager _taskManager;
 };
