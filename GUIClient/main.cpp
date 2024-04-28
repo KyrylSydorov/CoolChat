@@ -1,11 +1,17 @@
-#include "loginwindow.h"
+#include "Auth/AuthWindow.h"
+#include "Connection/Client.h"
 
 #include <QApplication>
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-    LoginWindow w;
-    w.show();
-    return a.exec();
+    Client client;
+    client.start();
+
+    QApplication application(argc, argv);
+
+    QAuthWindow authWindow(client);
+    authWindow.show();
+
+    return application.exec();
 }

@@ -14,15 +14,29 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 set(PROJECT_SOURCES
         main.cpp
-        loginwindow.cpp
-        loginwindow.h
-        loginwindow.ui
+
+
+
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(GUIClient
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        Connection/Client.cpp
+        Connection/Client.h
+
+
+        Auth/LoginWidget.ui
+        Auth/LoginWidget.h Auth/loginwidget.cpp
+        Auth/AuthWindow.h Auth/AuthWindow.cpp
+        Auth/AuthWindow.ui
+        Auth/LoginWidget.cpp
+        Auth/RegistrationWidget.h
+        Auth/RegistrationWidget.cpp
+        Auth/RegistrationWidget.ui
+
+
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET GUIClient APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

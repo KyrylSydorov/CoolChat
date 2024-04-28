@@ -1,5 +1,7 @@
+.vs/
 .idea/
 Debug/
 Release/
 Client/Debug/
 Client/Release/
+GUIClient/build/

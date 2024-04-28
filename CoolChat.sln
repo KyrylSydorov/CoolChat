@@ -1,22 +1,76 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34221.43
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Server", "Server\Server.vcxproj", "{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Client", "Client\Client.vcxproj", "{525A6E4B-4981-4E4B-885E-E18787D6F71D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GUIClient", "GUIClient\build\Desktop_Qt_6_7_0_MSVC2019_64bit-Debug\qtc_Visual_Studio_17_2022\GUIClient.vcxproj", "{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		MinSizeRel|Any CPU = MinSizeRel|Any CPU
+		MinSizeRel|x64 = MinSizeRel|x64
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		RelWithDebInfo|Any CPU = RelWithDebInfo|Any CPU
+		RelWithDebInfo|x64 = RelWithDebInfo|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.Debug|Any CPU.Build.0 = Debug|Win32
+		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.Debug|x64.ActiveCfg = Debug|x64
+		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.Debug|x64.Build.0 = Debug|x64
+		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.MinSizeRel|Any CPU.ActiveCfg = Debug|x64
+		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.MinSizeRel|Any CPU.Build.0 = Debug|x64
+		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.MinSizeRel|x64.ActiveCfg = Debug|x64
+		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.MinSizeRel|x64.Build.0 = Debug|x64
 		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.Release|Any CPU.ActiveCfg = Release|Win32
 		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.Release|Any CPU.Build.0 = Release|Win32
+		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.Release|x64.ActiveCfg = Release|x64
+		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.Release|x64.Build.0 = Release|x64
+		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.RelWithDebInfo|Any CPU.ActiveCfg = Release|x64
+		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.RelWithDebInfo|Any CPU.Build.0 = Release|x64
+		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.RelWithDebInfo|x64.ActiveCfg = Release|x64
+		{9FB17E34-2778-491A-B04A-D0FBA6D72EAC}.RelWithDebInfo|x64.Build.0 = Release|x64
 		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.Debug|Any CPU.Build.0 = Debug|Win32
+		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.Debug|x64.ActiveCfg = Debug|x64
+		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.Debug|x64.Build.0 = Debug|x64
+		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.MinSizeRel|Any CPU.ActiveCfg = Debug|x64
+		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.MinSizeRel|Any CPU.Build.0 = Debug|x64
+		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.MinSizeRel|x64.ActiveCfg = Debug|x64
+		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.MinSizeRel|x64.Build.0 = Debug|x64
 		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.Release|Any CPU.ActiveCfg = Release|Win32
 		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.Release|Any CPU.Build.0 = Release|Win32
+		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.Release|x64.ActiveCfg = Release|x64
+		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.Release|x64.Build.0 = Release|x64
+		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.RelWithDebInfo|Any CPU.ActiveCfg = Release|x64
+		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.RelWithDebInfo|Any CPU.Build.0 = Release|x64
+		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.RelWithDebInfo|x64.ActiveCfg = Release|x64
+		{525A6E4B-4981-4E4B-885E-E18787D6F71D}.RelWithDebInfo|x64.Build.0 = Release|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.Debug|Any CPU.Build.0 = Debug|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.Debug|x64.ActiveCfg = Debug|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.Debug|x64.Build.0 = Debug|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.MinSizeRel|Any CPU.ActiveCfg = MinSizeRel|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.MinSizeRel|Any CPU.Build.0 = MinSizeRel|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.MinSizeRel|x64.ActiveCfg = MinSizeRel|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.MinSizeRel|x64.Build.0 = MinSizeRel|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.Release|Any CPU.ActiveCfg = Release|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.Release|Any CPU.Build.0 = Release|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.Release|x64.ActiveCfg = Release|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.Release|x64.Build.0 = Release|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.RelWithDebInfo|Any CPU.ActiveCfg = RelWithDebInfo|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.RelWithDebInfo|Any CPU.Build.0 = RelWithDebInfo|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.RelWithDebInfo|x64.ActiveCfg = RelWithDebInfo|x64
+		{E5BF3C1E-F738-3FDC-BF35-0D364839FE7B}.RelWithDebInfo|x64.Build.0 = RelWithDebInfo|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal
