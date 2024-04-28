@@ -19,6 +19,7 @@ public:
 
     int login(const std::string& username, const std::string& password);
     int registerUser(const UserInfo& userInfo);
+    void logout();
 
     void newContact(const UserInfo& userInfo);
     const std::vector<UserInfo>& getContacts();

@@ -35,6 +35,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Auth/RegistrationWidget.h
         Auth/RegistrationWidget.cpp
         Auth/RegistrationWidget.ui
+        Chat/ChatWindow.h Chat/ChatWindow.cpp
+        Chat/ChatWindow.ui
 
 
     )

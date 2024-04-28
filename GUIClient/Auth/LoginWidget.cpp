@@ -14,6 +14,8 @@ QLoginWidget::QLoginWidget(Client& client, QWidget* parent)
 
     connect(_ui->loginButton, &QPushButton::clicked, this, &QLoginWidget::handleLoginButtonClicked);
     connect(_ui->backButton, &QPushButton::clicked, [this]() { emit finished(false); });
+
+    setTabOrder({ _ui->nicknameEdit, _ui->passwordEdit, _ui->loginButton, _ui->backButton });
 }
 
 QLoginWidget::~QLoginWidget()

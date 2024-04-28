@@ -54,7 +54,7 @@ void QAuthWindow::handleLoginFinished(const bool success)
 
     if (success)
     {
-        // trigger auth done
+        emit authDone();
     }
     else
     {

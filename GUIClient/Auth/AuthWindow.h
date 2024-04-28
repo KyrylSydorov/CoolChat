@@ -17,6 +17,9 @@ public:
     explicit QAuthWindow(Client& client, QWidget* parent = nullptr);
     ~QAuthWindow();
 
+signals:
+    void authDone();
+
 private slots:
     void handleLoginButtonClicked();
     void handleRegisterButtonClicked();

@@ -14,6 +14,17 @@ QRegistrationWidget::QRegistrationWidget(Client& client, QWidget* parent)
 
     connect(_ui->registerButton, &QPushButton::clicked, this, &QRegistrationWidget::handleRegisterButtonClicked);
     connect(_ui->backButton, &QPushButton::clicked, [this]() { emit finished(false); });
+
+    setTabOrder({
+        _ui->nicknameEdit,
+        _ui->passwordEdit,
+        _ui->password2Edit,
+        _ui->fnameEdit,
+        _ui->lnameEdit,
+        _ui->bioEdit,
+        _ui->registerButton,
+        _ui->backButton
+    });
 }
 
 QRegistrationWidget::~QRegistrationWidget()

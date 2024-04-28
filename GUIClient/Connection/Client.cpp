@@ -94,6 +94,12 @@ int Client::registerUser(const UserInfo& userInfo)
     return errorCode;
 }
 
+void Client::logout()
+{
+    _contacts.clear();
+    _currentUser = UserInfo();
+}
+
 void Client::newContact(const UserInfo& userInfo)
 {
     _contacts.push_back(userInfo);
