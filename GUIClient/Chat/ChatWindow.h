@@ -3,12 +3,14 @@
 
 #include <QMainWindow>
 
+
 namespace Ui
 {
 class ChatWindow;
 }
 
 class Client;
+class QInputWidget;
 
 class QChatWindow : public QMainWindow
 {
@@ -26,6 +28,8 @@ private slots:
 private:
     Ui::ChatWindow* _ui;
     Client& _client;
+
+    QInputWidget* _inputWidget;
 };
 
 #endif // CHATWINDOW_H

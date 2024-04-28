@@ -14,9 +14,6 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 set(PROJECT_SOURCES
         main.cpp
-
-
-
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -25,8 +22,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         Connection/Client.cpp
         Connection/Client.h
-
-
         Auth/LoginWidget.ui
         Auth/LoginWidget.h Auth/loginwidget.cpp
         Auth/AuthWindow.h Auth/AuthWindow.cpp
@@ -37,8 +32,12 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Auth/RegistrationWidget.ui
         Chat/ChatWindow.h Chat/ChatWindow.cpp
         Chat/ChatWindow.ui
-
-
+        Chat/DialogWidget.h Chat/DialogWidget.cpp
+        Chat/MessageWidget.h Chat/MessageWidget.cpp
+        Chat/InputWidget.h Chat/InputWidget.cpp
+        Chat/DialogWidget.ui
+        Chat/MessageWidget.ui
+        Chat/InputWidget.ui
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET GUIClient APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -84,3 +83,5 @@ install(TARGETS GUIClient
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(GUIClient)
 endif()
+
+include_directories(include build/Desktop_Qt_6_7_0_MSVC2019_64bit-Debug/GUIClient_autogen/include)
