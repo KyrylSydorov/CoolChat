@@ -4,6 +4,8 @@
 #include <QMainWindow>
 
 
+class QVBoxLayout;
+
 namespace Ui
 {
 class ChatWindow;
@@ -26,10 +28,15 @@ private slots:
     void handleLogoutButtonPressed();
 
 private:
+    void rebuildDialogs();
+    void clearDialogs();
+    
     Ui::ChatWindow* _ui;
     Client& _client;
 
     QInputWidget* _inputWidget;
+
+    QVBoxLayout* _dialogsLayout = nullptr;
 };
 
 #endif // CHATWINDOW_H
