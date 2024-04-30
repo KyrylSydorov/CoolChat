@@ -96,23 +96,18 @@ int Client::registerUser(const UserInfo& userInfo)
 
 void Client::logout()
 {
-    _contacts.clear();
+    _cachedDialogs.clear();
     _currentUser = UserInfo();
 }
 
-void Client::newContact(const UserInfo& userInfo)
-{
-    _contacts.push_back(userInfo);
-}
-
-const std::vector<UserInfo>& Client::getContacts()
+void Client::updateDialogs()
 {
     stringstream ss;
     ss << static_cast<int>(RequestType::GetContacts) << ' ' << _currentUser.hashedNickname;
     string response = serverRequest(ss.str());
     if (response.empty())
     {
-        return _contacts;
+        return;
     }
 
     stringstream responseStream(response);
@@ -120,14 +115,14 @@ const std::vector<UserInfo>& Client::getContacts()
     responseStream >> responseType;
     if (responseType != static_cast<int>(RequestType::GetContacts))
     {
-        return _contacts;
+        return;
     }
 
     int errorCode;
     responseStream >> errorCode;
     if (errorCode != Errors::success)
     {
-        return _contacts;
+        return;
     }
 
     int contactsNum = 0;
@@ -140,9 +135,9 @@ const std::vector<UserInfo>& Client::getContacts()
 
         // find in _contacts
         bool found = false;
-        for (const UserInfo& contact : _contacts)
+        for (const Dialog& dialog : _cachedDialogs)
         {
-            if (contact.hashedNickname == contactId)
+            if (dialog.userInfo.hashedNickname == contactId)
             {
                 found = true;
                 break;
@@ -151,11 +146,20 @@ const std::vector<UserInfo>& Client::getContacts()
 
         if (!found)
         {
-            _contacts.push_back(getUserInfo(contactId));
+            _cachedDialogs.push_back({ getUserInfo(contactId) });
         }
     }
 
-    return _contacts;
+    for (Dialog& dialog : _cachedDialogs)
+    {
+        vector<Message> messages = getMessages(dialog.userInfo.hashedNickname, dialog.lastReadMessageId + 1);
+        dialog.messages.insert(dialog.messages.end(), messages.begin(), messages.end());
+    }
+}
+
+void Client::newContact(const UserInfo& userInfo)
+{
+    _cachedDialogs.push_back({ userInfo });
 }
 
 const UserInfo& Client::getCurrentUser() const
@@ -269,6 +273,11 @@ std::vector<Message> Client::getMessages(int senderId, int fromId)
     return messages;
 }
 
+const std::vector<Dialog>& Client::getDialogs() const
+{
+    return _cachedDialogs;
+}
+
 std::string Client::serverRequest(std::string request)
 {
     int msgLen = request.size();
@@ -345,8 +354,4 @@ void Client::initializeClientSocket()
         std::cerr << "Connect failed: " << WSAGetLastError() << std::endl;
         closesocket(_socket);
     }
-
-    //DWORD timeout = 10000;
-    //setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
-    //setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
 }

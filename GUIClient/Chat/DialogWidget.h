@@ -3,6 +3,8 @@
 
 #include <QWidget>
 
+struct Dialog;
+
 namespace Ui
 {
     class DialogWidget;
@@ -12,7 +14,7 @@ class QDialogWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit QDialogWidget(QWidget* parent = nullptr);
+    explicit QDialogWidget(const Dialog& dialog, const size_t id, QWidget* parent = nullptr);
     ~QDialogWidget();
 
     void select();
@@ -28,6 +30,8 @@ private:
     bool _selected = false;
     
     Ui::DialogWidget* _ui;
+
+    size_t _id;
 };
 
 #endif // DIALOGWIDGET_H

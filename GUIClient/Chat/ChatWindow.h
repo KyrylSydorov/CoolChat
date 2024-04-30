@@ -28,8 +28,13 @@ private slots:
     void handleLogoutButtonPressed();
 
 private:
+    void setupHeader();
+    
     void rebuildDialogs();
     void clearDialogs();
+
+    void rebuildMessages();
+    void clearMessages();
     
     Ui::ChatWindow* _ui;
     Client& _client;
@@ -37,6 +42,7 @@ private:
     QInputWidget* _inputWidget;
 
     QVBoxLayout* _dialogsLayout = nullptr;
+    QVBoxLayout* _messagesLayout = nullptr;
 };
 
 #endif // CHATWINDOW_H

@@ -8,7 +8,12 @@
 #include "../../Server/UserManager.h"
 #include "../../Server/MessageManager.h"
 
-struct UserInfo;
+struct Dialog
+{
+    UserInfo userInfo;
+    std::vector<Message> messages;
+    int lastReadMessageId = -1;
+};
 
 class Client
 {
@@ -21,8 +26,9 @@ public:
     int registerUser(const UserInfo& userInfo);
     void logout();
 
+    void updateDialogs();
+
     void newContact(const UserInfo& userInfo);
-    const std::vector<UserInfo>& getContacts();
 
     const UserInfo& getCurrentUser() const;
     UserInfo getUserInfo(int id);
@@ -31,9 +37,10 @@ public:
     void sendMessage(int receiverId, const std::string& message);
 
     std::vector<Message> getMessages(int senderId, int fromId);
+
+    const std::vector<Dialog>& getDialogs() const;
     
 private:
-    
     std::string serverRequest(std::string request);
     
     void initializeClientSocket();
@@ -41,5 +48,6 @@ private:
     SOCKET _socket = INVALID_SOCKET;
 
     UserInfo _currentUser;
-    std::vector<UserInfo> _contacts;
+    
+    std::vector<Dialog> _cachedDialogs;
 };
