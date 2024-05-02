@@ -38,6 +38,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Chat/DialogWidget.ui
         Chat/MessageWidget.ui
         Chat/InputWidget.ui
+        Connection/DialogUpdateWorker.h Connection/DialogUpdateWorker.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET GUIClient APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

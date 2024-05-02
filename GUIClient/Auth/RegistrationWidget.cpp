@@ -21,7 +21,6 @@ QRegistrationWidget::QRegistrationWidget(Client& client, QWidget* parent)
         _ui->password2Edit,
         _ui->fnameEdit,
         _ui->lnameEdit,
-        _ui->bioEdit,
         _ui->registerButton,
         _ui->backButton
     });
@@ -66,18 +65,11 @@ void QRegistrationWidget::handleRegisterButtonClicked()
         return;
     }
 
-    if (_ui->bioEdit->text().length() == 0)
-    {
-        _ui->errorLabel->setText("Tell us more about yourself, please");
-        return;
-    }
-
     UserInfo userInfo;
     userInfo.nickname = _ui->nicknameEdit->text().toStdString();
     userInfo.password = _ui->passwordEdit->text().toStdString();
     userInfo.firstName = _ui->fnameEdit->text().toStdString();
     userInfo.lastName = _ui->lnameEdit->text().toStdString();
-    userInfo.biography = _ui->bioEdit->text().toStdString();
 
     int response = _client.registerUser(userInfo);
     if (response == Errors::success)

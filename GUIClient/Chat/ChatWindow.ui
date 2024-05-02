@@ -252,6 +252,81 @@
      <string>X</string>
     </property>
    </widget>
+   <widget class="QWidget" name="newChatWidget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>670</x>
+      <y>280</y>
+      <width>311</width>
+      <height>101</height>
+     </rect>
+    </property>
+    <widget class="QPushButton" name="newChatButton">
+     <property name="geometry">
+      <rect>
+       <x>230</x>
+       <y>60</y>
+       <width>75</width>
+       <height>30</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Chat</string>
+     </property>
+    </widget>
+    <widget class="QPlainTextEdit" name="newChatEdit">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>60</y>
+       <width>221</width>
+       <height>30</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="newChatLabel">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>30</y>
+       <width>251</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Start messaging:</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="newChatErrorLabel">
+     <property name="geometry">
+      <rect>
+       <x>-2</x>
+       <y>10</y>
+       <width>311</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>11</pointsize>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">color : red</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </widget>
   </widget>
  </widget>
  <resources/>

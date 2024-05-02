@@ -22,16 +22,27 @@ QDialogWidget::QDialogWidget(const Dialog& dialog, const size_t id, QWidget* par
     const UserInfo& user = dialog.contact;
 
     _ui->tagLabel->setText(("@" + user.nickname).c_str());
-    _ui->messageLabel->setText(dialog.messages.back().message.c_str());
 
-    std::string time;
-    time.resize(26);
-    ctime_s(time.data(), time.capacity(), &dialog.messages.back().time);
+    if (dialog.messages.empty())
+    {
+        _ui->messageLabel->setText("");
+        _ui->timeLabel->setText("");
+    }
+    else
+    {
+        _ui->messageLabel->setText(dialog.messages.back().message.c_str());
+
+        std::string time;
+        time.resize(26);
+        ctime_s(time.data(), time.capacity(), &dialog.messages.back().time);
     
-    _ui->timeLabel->setText(time.c_str());
+        _ui->timeLabel->setText(time.c_str());
+    }
 
-    _ui->unreadLabel->setText("");
-
+    const int unreadMessages = dialog.state.totalMessages - dialog.state.lastReadMessageId - 1;
+    const std::string unreadMessagesStr = unreadMessages <= 0 ? "" : std::to_string(unreadMessages);
+    _ui->unreadLabel->setText(unreadMessagesStr.c_str());
+    
     _ui->nameLabel->setText((user.firstName + " " + user.lastName).c_str());
 
     _ui->groupBox->setStyleSheet(DialogWidget::deselectedStyle);

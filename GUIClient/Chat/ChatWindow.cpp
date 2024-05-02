@@ -3,6 +3,9 @@
 #include "InputWidget.h"
 #include "MessageWidget.h"
 #include "../Connection/Client.h"
+#include "../Connection/DialogUpdateWorker.h"
+#include "../Connection/MessagesUpdateWorker.h"
+#include "../../Server/Constants.h"
 
 #include "ui_ChatWindow.h"
 
@@ -19,15 +22,22 @@ QChatWindow::QChatWindow(Client& client, QWidget *parent)
 
     connect(_ui->logoutButton, &QPushButton::clicked, this, &QChatWindow::handleLogoutButtonPressed);
     connect(_ui->exitButton, &QPushButton::clicked, this, &QChatWindow::handleExitButtonPressed);
+    connect(_ui->newChatButton, &QPushButton::clicked, this, &QChatWindow::handleNewChatButtonPressed);
     setupHeader();
-    rebuildDialogs();
 
     hideExitButton();
+
+    setupUpdateThreads();
 }
 
 QChatWindow::~QChatWindow()
 {
     delete _ui;
+
+    if (_dialogUpdateThread)
+    {
+        _dialogUpdateWorker->requestStop();
+    }
 }
 
 void QChatWindow::handleLogoutButtonPressed()
@@ -45,6 +55,7 @@ void QChatWindow::setupHeader()
 
 void QChatWindow::rebuildDialogs()
 {
+    int selectedLocalId = _selectedDialog ? _selectedDialog->getId() : -1;
     clearDialogs();
 
     _client.updateDialogs();
@@ -54,15 +65,16 @@ void QChatWindow::rebuildDialogs()
     
     for (size_t i = 0; i < dialogs.size(); ++i)
     {
-        if (dialogs[i].state.totalMessages <= 0 || dialogs[i].messages.empty())
-        {
-            continue;
-        }
-
         QDialogWidget* dialog = new QDialogWidget(dialogs[i], i, this);
         _dialogsLayout->addWidget(dialog);
 
         connect(dialog, &QDialogWidget::onClicked, this, &QChatWindow::handleDialogClicked);
+
+        if (static_cast<int>(i) == selectedLocalId)
+        {
+            dialog->select();
+            _selectedDialog = dialog;
+        }
     }
 
     QSpacerItem* verticalSpacer = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
@@ -88,10 +100,12 @@ void QChatWindow::rebuildMessages()
 {
     clearMessages();
 
+    if (!_selectedDialog)
+    {
+        return;
+    }
+    
     const int contactLocalId = static_cast<int>(_selectedDialog->getId());
-
-    _client.cleanCachedMessages(contactLocalId);
-    _client.updateMessages(contactLocalId);
     const Dialog& dialog = _client.getDialogs()[contactLocalId];
 
     _messagesLayout = new QVBoxLayout(_ui->messagesScrollWidget);
@@ -175,6 +189,16 @@ void QChatWindow::hideExitButton()
     _ui->exitButton->setVisible(false);
 }
 
+void QChatWindow::showNewChatWidget()
+{
+    _ui->newChatWidget->setVisible(true);
+}
+
+void QChatWindow::hideNewChatWidget()
+{
+    _ui->newChatWidget->setVisible(false);
+}
+
 void QChatWindow::handleDialogClicked(QDialogWidget* dialog)
 {
     if (_selectedDialog)
@@ -184,7 +208,7 @@ void QChatWindow::handleDialogClicked(QDialogWidget* dialog)
 
     dialog->select();
     _selectedDialog = dialog;
-    rebuildMessages();
+    _dialogUpdateWorker->setLocalContactId(static_cast<int>(dialog->getId()));
 
     if (!_inputWidget)
     {
@@ -192,6 +216,7 @@ void QChatWindow::handleDialogClicked(QDialogWidget* dialog)
     }
 
     showExitButton();
+    hideNewChatWidget();
 }
 
 void QChatWindow::handleMessageSent(const std::string& message)
@@ -204,8 +229,6 @@ void QChatWindow::handleMessageSent(const std::string& message)
     const int localId = static_cast<int>(_selectedDialog->getId());
     const int receiverId = _client.getDialogs()[localId].state.contactId;
     _client.sendMessage(receiverId, message);
-
-    rebuildMessages();
 }
 
 void QChatWindow::handleExitButtonPressed()
@@ -216,7 +239,44 @@ void QChatWindow::handleExitButtonPressed()
         _selectedDialog = nullptr;
     }
 
+    _dialogUpdateWorker->setLocalContactId(-1);
+
     clearMessages();
     destroyInputWidget();
     hideExitButton();
+
+    showNewChatWidget();
+}
+
+void QChatWindow::handleNewChatButtonPressed()
+{
+    _ui->newChatErrorLabel->setText("");
+    const std::string nickname = _ui->newChatEdit->toPlainText().toStdString();
+    if (nickname.size() < Constants::minNameLength)
+    {
+        _ui->newChatErrorLabel->setText("Nickname is too short");
+        return;
+    }
+
+    const UserInfo user = _client.getUserInfo(nickname);
+    if (!user.isValid())
+    {
+        _ui->newChatErrorLabel->setText("User not found");
+        return;
+    }
+
+    _client.newContact(user);
+}
+
+void QChatWindow::setupUpdateThreads()
+{
+    _dialogUpdateThread = new QThread();
+    _dialogUpdateWorker = new QDialogUpdateWorker(_client);
+    _dialogUpdateWorker->moveToThread(_dialogUpdateThread);
+    connect(_dialogUpdateWorker, &QDialogUpdateWorker::dialogsUpdated, this, &QChatWindow::rebuildDialogs);
+    connect(_dialogUpdateWorker, &QDialogUpdateWorker::messagesUpdated, this, &QChatWindow::rebuildMessages);
+    connect(_dialogUpdateThread, &QThread::started, _dialogUpdateWorker, &QDialogUpdateWorker::run);
+    connect(_dialogUpdateThread, &QThread::finished, _dialogUpdateWorker, &QObject::deleteLater);
+    connect(_dialogUpdateWorker, &QDialogUpdateWorker::threadStopped, _dialogUpdateThread, &QThread::quit);
+    _dialogUpdateThread->start();
 }

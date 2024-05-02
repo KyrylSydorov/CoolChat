@@ -39,6 +39,7 @@ void Client::start()
 
 int Client::login(const string& username, const string& password)
 {
+    std::unique_lock<std::shared_mutex> lock(_rwLock);
     stringstream ss;
     ss << static_cast<int>(RequestType::Login) << ' ' << username << ' ' << password;
     string response = serverRequest(ss.str());
@@ -67,6 +68,7 @@ int Client::login(const string& username, const string& password)
 
 int Client::registerUser(const UserInfo& userInfo)
 {
+    std::unique_lock<std::shared_mutex> lock(_rwLock);
     _currentUser = userInfo;
     
     stringstream ss;
@@ -97,8 +99,18 @@ int Client::registerUser(const UserInfo& userInfo)
 
 void Client::logout()
 {
+    std::unique_lock<std::shared_mutex> lock(_rwLock);
     _cachedDialogs.clear();
     _currentUser = UserInfo();
+
+    if (_socket != INVALID_SOCKET)
+    {
+        shutdown(_socket, SD_SEND);
+        closesocket(_socket);
+        WSACleanup();
+    }
+
+    start();
 }
 
 void Client::updateDialogs()
@@ -110,7 +122,8 @@ void Client::updateDialogs()
 
 void Client::newContact(const UserInfo& userInfo)
 {
-    _cachedDialogs.push_back({ userInfo });
+    std::unique_lock<std::shared_mutex> lock(_rwLock);
+    _cachedDialogs.emplace_back(Dialog{ userInfo, { _currentUser.hashedNickname, userInfo.hashedNickname }, {} });
 }
 
 const UserInfo& Client::getCurrentUser() const
@@ -186,6 +199,7 @@ void Client::sendMessage(int receiverId, const std::string& message)
 
 void Client::updateMessages(int contactLocalId)
 {
+    std::unique_lock<std::shared_mutex> lock(_rwLock);
     if (contactLocalId < 0 || contactLocalId >= _cachedDialogs.size())
     {
         return;
@@ -206,6 +220,18 @@ void Client::updateMessages(int contactLocalId)
     {
         dialog.messages.push_back(move(message));
     }
+
+    const int lastReadId = dialog.state.lastReadMessageId;
+    dialog.state.lastReadMessageId = static_cast<int>(dialog.messages.size()) - 1;
+
+    if (lastReadId == dialog.state.lastReadMessageId)
+    {
+        return;
+    }
+    
+    stringstream ss;
+    ss << static_cast<int>(RequestType::UpdateDialogState) << ' ' << dialog.contact.hashedNickname << ' ' << dialog.state.lastReadMessageId;
+    serverRequest(ss.str());
 }
 
 std::vector<Message> Client::getMessages(int senderId, int fromId)
@@ -250,6 +276,7 @@ std::vector<Message> Client::getMessages(int senderId, int fromId)
 
 void Client::cleanCachedMessages(int contactLocalId)
 {
+    std::unique_lock<std::shared_mutex> lock(_rwLock);
     if (contactLocalId < 0 || contactLocalId >= _cachedDialogs.size())
     {
         return;
@@ -259,11 +286,14 @@ void Client::cleanCachedMessages(int contactLocalId)
 
 const std::vector<Dialog>& Client::getDialogs() const
 {
+    std::shared_lock<std::shared_mutex> lock(_rwLock);
     return _cachedDialogs;
 }
 
 std::string Client::serverRequest(std::string request)
 {
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex);
     int msgLen = request.size();
     int iResult = send(_socket, (char*)&msgLen, sizeof(msgLen), 0);
     if (iResult == SOCKET_ERROR)
@@ -368,6 +398,7 @@ void Client::fetchDialogs()
     std::vector<DialogState> dialogStates;
     responseStream >> dialogStates;
 
+    std::unique_lock<std::shared_mutex> lock(_rwLock);
     for (DialogState& dialogState : dialogStates)
     {
         auto iter = std::find_if(_cachedDialogs.begin(), _cachedDialogs.end(),
@@ -392,11 +423,14 @@ void Client::fetchLastMessages()
     ss << static_cast<int>(RequestType::GetLastMessages) << ' ';
 
     vector<int> contactIds;
-    for (const Dialog& dialog : _cachedDialogs)
     {
-        if (dialog.state.lastReadMessageId + 1 < dialog.state.totalMessages || dialog.messages.empty())
+        std::shared_lock<std::shared_mutex> lock(_rwLock);
+        for (const Dialog& dialog : _cachedDialogs)
         {
-            contactIds.push_back(dialog.state.contactId);
+            if (dialog.state.lastReadMessageId + 1 < dialog.state.totalMessages || dialog.messages.empty())
+            {
+                contactIds.push_back(dialog.state.contactId);
+            }
         }
     }
     ss << contactIds;
@@ -421,6 +455,7 @@ void Client::fetchLastMessages()
     int messagesNum;
     responseStream >> messagesNum;
 
+    std::unique_lock<std::shared_mutex> lock(_rwLock);
     for (int i = 0; i < messagesNum; ++i)
     {
         int contactId;
@@ -436,13 +471,21 @@ void Client::fetchLastMessages()
             });
         if (iter != _cachedDialogs.end())
         {
-            iter->messages.push_back(message);
+            if (iter->messages.size() == 0)
+            {
+                iter->messages.push_back(move(message));
+            }
+            else
+            {
+                iter->messages[0] = move(message);
+            }
         }
     }
 }
 
 void Client::fetchContacts()
 {
+    std::unique_lock<std::shared_mutex> lock(_rwLock);
     for (Dialog& dialog : _cachedDialogs)
     {
         if (dialog.contact.isValid())

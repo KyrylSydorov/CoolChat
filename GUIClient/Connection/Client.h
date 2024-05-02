@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <winsock2.h>
+#include <shared_mutex>
 
 #include "../../Server/UserManager.h"
 #include "../../Server/MessageManager.h"
@@ -57,4 +58,6 @@ private:
     UserInfo _currentUser;
     
     std::vector<Dialog> _cachedDialogs;
+
+    mutable std::shared_mutex _rwLock;
 };

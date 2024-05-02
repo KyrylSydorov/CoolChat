@@ -2,6 +2,10 @@
 #define CHATWINDOW_H
 
 #include <QMainWindow>
+#include <QThread>
+
+class QMessagesUpdateWorker;
+class QDialogUpdateWorker;
 
 namespace Ui
 {
@@ -28,8 +32,11 @@ private slots:
     void handleDialogClicked(QDialogWidget* dialog);
     void handleMessageSent(const std::string& message);
     void handleExitButtonPressed();
+    void handleNewChatButtonPressed();
 
 private:
+    void setupUpdateThreads();
+    
     void setupHeader();
     
     void rebuildDialogs();
@@ -43,6 +50,9 @@ private:
 
     void showExitButton();
     void hideExitButton();
+
+    void showNewChatWidget();
+    void hideNewChatWidget();
     
     Ui::ChatWindow* _ui;
     Client& _client;
@@ -53,6 +63,12 @@ private:
     QVBoxLayout* _messagesLayout = nullptr;
 
     QDialogWidget* _selectedDialog = nullptr;
+
+    QThread* _dialogUpdateThread = nullptr;
+    QDialogUpdateWorker* _dialogUpdateWorker = nullptr;
+
+    QThread* _messageUpdateThread = nullptr;
+    QMessagesUpdateWorker* _messageUpdateWorker = nullptr;
 };
 
 #endif // CHATWINDOW_H
