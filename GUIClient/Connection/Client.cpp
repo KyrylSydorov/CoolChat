@@ -7,6 +7,7 @@
 
 #include "Client.h"
 #include "../../Server/Constants.h"
+#include "../../Server/SerializationHelpers.h"
 
 // Link with ws2_32.lib
 #pragma comment(lib, "Ws2_32.lib")
@@ -102,59 +103,9 @@ void Client::logout()
 
 void Client::updateDialogs()
 {
-    stringstream ss;
-    ss << static_cast<int>(RequestType::GetContacts) << ' ' << _currentUser.hashedNickname;
-    string response = serverRequest(ss.str());
-    if (response.empty())
-    {
-        return;
-    }
-
-    stringstream responseStream(response);
-    int responseType;
-    responseStream >> responseType;
-    if (responseType != static_cast<int>(RequestType::GetContacts))
-    {
-        return;
-    }
-
-    int errorCode;
-    responseStream >> errorCode;
-    if (errorCode != Errors::success)
-    {
-        return;
-    }
-
-    int contactsNum = 0;
-    responseStream >> contactsNum;
-    
-    for (int i = 0; i < contactsNum; ++i)
-    {
-        int contactId;
-        responseStream >> contactId;
-
-        // find in _contacts
-        bool found = false;
-        for (const Dialog& dialog : _cachedDialogs)
-        {
-            if (dialog.userInfo.hashedNickname == contactId)
-            {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found)
-        {
-            _cachedDialogs.push_back({ getUserInfo(contactId) });
-        }
-    }
-
-    for (Dialog& dialog : _cachedDialogs)
-    {
-        vector<Message> messages = getMessages(dialog.userInfo.hashedNickname, dialog.lastReadMessageId + 1);
-        dialog.messages.insert(dialog.messages.end(), messages.begin(), messages.end());
-    }
+    fetchDialogs();
+    fetchLastMessages();
+    fetchContacts();
 }
 
 void Client::newContact(const UserInfo& userInfo)
@@ -207,7 +158,7 @@ UserInfo Client::getUserInfo(const std::string& nickname)
 void Client::sendMessage(int receiverId, const std::string& message)
 {
     stringstream ss;
-    ss << static_cast<int>(RequestType::SendMessageTo) << ' ' << _currentUser.hashedNickname << ' ' << receiverId << ' ' << message;
+    ss << static_cast<int>(RequestType::SendMessageTo) << ' ' << receiverId << ' ' << message;
     string response = serverRequest(ss.str());
     if (response.empty())
     {
@@ -233,10 +184,34 @@ void Client::sendMessage(int receiverId, const std::string& message)
     //cout << "Sent!\n\n";
 }
 
+void Client::updateMessages(int contactLocalId)
+{
+    if (contactLocalId < 0 || contactLocalId >= _cachedDialogs.size())
+    {
+        return;
+    }
+
+    Dialog& dialog = _cachedDialogs[contactLocalId];
+    
+    const size_t fromId = dialog.messages.size();
+
+    if (fromId >= dialog.state.totalMessages)
+    {
+        // No new messages
+        return;
+    }
+    
+    vector<Message> messages = getMessages(dialog.state.contactId, fromId);
+    for (Message& message : messages)
+    {
+        dialog.messages.push_back(move(message));
+    }
+}
+
 std::vector<Message> Client::getMessages(int senderId, int fromId)
 {
     stringstream ss;
-    ss << static_cast<int>(RequestType::GetMessages) << ' ' << _currentUser.hashedNickname << ' ' << senderId << ' ' << fromId;
+    ss << static_cast<int>(RequestType::GetMessages) << ' ' << senderId << ' ' << fromId;
     string response = serverRequest(ss.str());
     if (response.empty())
     {
@@ -271,6 +246,15 @@ std::vector<Message> Client::getMessages(int senderId, int fromId)
     }
 
     return messages;
+}
+
+void Client::cleanCachedMessages(int contactLocalId)
+{
+    if (contactLocalId < 0 || contactLocalId >= _cachedDialogs.size())
+    {
+        return;
+    }
+    _cachedDialogs[contactLocalId].messages.clear();
 }
 
 const std::vector<Dialog>& Client::getDialogs() const
@@ -353,5 +337,119 @@ void Client::initializeClientSocket()
     {
         std::cerr << "Connect failed: " << WSAGetLastError() << std::endl;
         closesocket(_socket);
+    }
+}
+
+void Client::fetchDialogs()
+{
+    stringstream ss;
+    ss << static_cast<int>(RequestType::FetchDialogStates);
+    string response = serverRequest(ss.str());
+    if (response.empty())
+    {
+        return;
+    }
+
+    stringstream responseStream(response);
+    int responseType;
+    responseStream >> responseType;
+    if (responseType != static_cast<int>(RequestType::FetchDialogStates))
+    {
+        return;
+    }
+
+    int errorCode;
+    responseStream >> errorCode;
+    if (errorCode != Errors::success)
+    {
+        return;
+    }
+
+    std::vector<DialogState> dialogStates;
+    responseStream >> dialogStates;
+
+    for (DialogState& dialogState : dialogStates)
+    {
+        auto iter = std::find_if(_cachedDialogs.begin(), _cachedDialogs.end(),
+            [&dialogState](const Dialog& dialog)
+            {
+                return dialog.state.contactId == dialogState.contactId;
+            });
+        if (iter != _cachedDialogs.end())
+        {
+            iter->state = dialogState;
+        }
+        else
+        {
+            _cachedDialogs.emplace_back(Dialog{ {}, dialogState, {} });
+        }
+    }
+}
+
+void Client::fetchLastMessages()
+{
+    stringstream ss;
+    ss << static_cast<int>(RequestType::GetLastMessages) << ' ';
+
+    vector<int> contactIds;
+    for (const Dialog& dialog : _cachedDialogs)
+    {
+        if (dialog.state.lastReadMessageId + 1 < dialog.state.totalMessages || dialog.messages.empty())
+        {
+            contactIds.push_back(dialog.state.contactId);
+        }
+    }
+    ss << contactIds;
+    
+    string response = serverRequest(ss.str());
+
+    stringstream responseStream(response);
+    int responseType;
+    responseStream >> responseType;
+    if (responseType != static_cast<int>(RequestType::GetLastMessages))
+    {
+        return;
+    }
+
+    int errorCode;
+    responseStream >> errorCode;
+    if (errorCode != Errors::success)
+    {
+        return;
+    }
+
+    int messagesNum;
+    responseStream >> messagesNum;
+
+    for (int i = 0; i < messagesNum; ++i)
+    {
+        int contactId;
+        responseStream >> contactId;
+
+        Message message;
+        responseStream >> message;
+
+        auto iter = std::find_if(_cachedDialogs.begin(), _cachedDialogs.end(),
+            [&contactId](const Dialog& dialog)
+            {
+                return dialog.state.contactId == contactId;
+            });
+        if (iter != _cachedDialogs.end())
+        {
+            iter->messages.push_back(message);
+        }
+    }
+}
+
+void Client::fetchContacts()
+{
+    for (Dialog& dialog : _cachedDialogs)
+    {
+        if (dialog.contact.isValid())
+        {
+            continue;
+        }
+
+        dialog.contact = getUserInfo(dialog.state.contactId);
     }
 }

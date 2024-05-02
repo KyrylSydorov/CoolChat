@@ -8,11 +8,13 @@ namespace Ui
     class MessageWidget;
 }
 
+struct Message;
+
 class QMessageWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit QMessageWidget(QWidget* parent = nullptr);
+    explicit QMessageWidget(const Message& message, QWidget* parent = nullptr);
     ~QMessageWidget();
 
     void stylizeAsIncoming();

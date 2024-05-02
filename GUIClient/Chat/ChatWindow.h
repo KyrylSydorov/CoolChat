@@ -3,16 +3,15 @@
 
 #include <QMainWindow>
 
-
-class QVBoxLayout;
-
 namespace Ui
 {
 class ChatWindow;
 }
 
-class Client;
+class QDialogWidget;
 class QInputWidget;
+class Client;
+class QVBoxLayout;
 
 class QChatWindow : public QMainWindow
 {
@@ -26,6 +25,9 @@ signals:
 
 private slots:
     void handleLogoutButtonPressed();
+    void handleDialogClicked(QDialogWidget* dialog);
+    void handleMessageSent(const std::string& message);
+    void handleExitButtonPressed();
 
 private:
     void setupHeader();
@@ -35,14 +37,22 @@ private:
 
     void rebuildMessages();
     void clearMessages();
+
+    void createInputWidget();
+    void destroyInputWidget();
+
+    void showExitButton();
+    void hideExitButton();
     
     Ui::ChatWindow* _ui;
     Client& _client;
 
-    QInputWidget* _inputWidget;
+    QInputWidget* _inputWidget = nullptr;
 
     QVBoxLayout* _dialogsLayout = nullptr;
     QVBoxLayout* _messagesLayout = nullptr;
+
+    QDialogWidget* _selectedDialog = nullptr;
 };
 
 #endif // CHATWINDOW_H

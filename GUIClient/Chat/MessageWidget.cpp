@@ -1,12 +1,22 @@
 #include "MessageWidget.h"
 
+#include "../../Server/MessageManager.h"
+
 #include "ui_MessageWidget.h"
 
-QMessageWidget::QMessageWidget(QWidget *parent)
+QMessageWidget::QMessageWidget(const Message& message, QWidget *parent)
     : QWidget{ parent }
     , _ui{ new Ui::MessageWidget() }
 {
     _ui->setupUi(this);
+
+    _ui->messageLabel->setText(message.message.c_str());
+    
+    std::string time;
+    time.resize(26);
+    ctime_s(time.data(), time.capacity(), &message.time);
+    
+    _ui->timeLabel->setText(time.c_str());
 }
 
 QMessageWidget::~QMessageWidget()

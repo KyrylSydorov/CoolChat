@@ -19,7 +19,7 @@ QDialogWidget::QDialogWidget(const Dialog& dialog, const size_t id, QWidget* par
 {
     _ui->setupUi(this);
 
-    const UserInfo& user = dialog.userInfo;
+    const UserInfo& user = dialog.contact;
 
     _ui->tagLabel->setText(("@" + user.nickname).c_str());
     _ui->messageLabel->setText(dialog.messages.back().message.c_str());
@@ -54,6 +54,11 @@ void QDialogWidget::deselect()
     _ui->groupBox->setStyleSheet(DialogWidget::deselectedStyle);
 }
 
+size_t QDialogWidget::getId() const
+{
+    return _id;
+}
+
 void QDialogWidget::enterEvent(QEnterEvent* event)
 {
     QWidget::enterEvent(event);
@@ -72,4 +77,11 @@ void QDialogWidget::leaveEvent(QEvent* event)
     }
     
     QWidget::leaveEvent(event);
+}
+
+void QDialogWidget::mousePressEvent(QMouseEvent* event)
+{
+    QWidget::mousePressEvent(event);
+
+    onClicked(this);
 }

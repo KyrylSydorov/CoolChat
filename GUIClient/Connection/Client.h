@@ -10,9 +10,9 @@
 
 struct Dialog
 {
-    UserInfo userInfo;
+    UserInfo contact;
+    DialogState state;
     std::vector<Message> messages;
-    int lastReadMessageId = -1;
 };
 
 class Client
@@ -36,7 +36,10 @@ public:
 
     void sendMessage(int receiverId, const std::string& message);
 
+    void updateMessages(int contactLocalId);
     std::vector<Message> getMessages(int senderId, int fromId);
+
+    void cleanCachedMessages(int contactLocalId);
 
     const std::vector<Dialog>& getDialogs() const;
     
@@ -44,6 +47,10 @@ private:
     std::string serverRequest(std::string request);
     
     void initializeClientSocket();
+
+    void fetchDialogs();
+    void fetchLastMessages();
+    void fetchContacts();
 
     SOCKET _socket = INVALID_SOCKET;
 

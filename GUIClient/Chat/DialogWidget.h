@@ -20,11 +20,16 @@ public:
     void select();
     void deselect();
 
+    size_t getId() const;
+
 protected:
     virtual void enterEvent(QEnterEvent* event) override;
     virtual void leaveEvent(QEvent* event) override;
 
+    virtual void mousePressEvent(QMouseEvent* event) override;
+
 signals:
+    void onClicked(QDialogWidget* widget);
 
 private:
     bool _selected = false;

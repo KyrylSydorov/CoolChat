@@ -15,6 +15,9 @@ public:
     explicit QInputWidget(QWidget* parent = nullptr);
     ~QInputWidget();
 
+signals:
+    void messageSent(const std::string& message);
+
 private:
     Ui::InputWidget* _ui;
 

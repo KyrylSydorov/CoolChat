@@ -7,6 +7,12 @@ QInputWidget::QInputWidget(QWidget* parent)
     , _ui{ new Ui::InputWidget() }
 {
     _ui->setupUi(this);
+
+    connect(_ui->pushButton, &QPushButton::clicked, [this]()
+    {
+        emit messageSent(_ui->messageEdit->toPlainText().toStdString());
+        _ui->messageEdit->clear();
+    });
 }
 
 QInputWidget::~QInputWidget()
