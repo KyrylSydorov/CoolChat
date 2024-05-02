@@ -3,6 +3,7 @@
 #pragma once
 
 #include <string>
+#include <sstream>
 
 #include "UserManager.h"
 
@@ -23,8 +24,11 @@ public:
     
 private:
     Session(Server& server, SOCKET clientSocket);
+
+    void processAuthorizedRequest(std::stringstream&& ss);
+    void processUnauthorizedRequest(std::stringstream&& ss);
     
-    UserInfo _currentUser;
+    int _currentUserId = -1;
 
     bool _receivingInProgress = false;
     bool _sendingInProgress = false;

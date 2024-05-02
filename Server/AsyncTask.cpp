@@ -24,8 +24,9 @@ void AsyncTask::finish(bool success)
     _finished = true;
 }
 
-StreamAsyncTask::StreamAsyncTask(std::stringstream&& stream, TCallback callback)
-    : _stream(std::move(stream))
+StreamAsyncTask::StreamAsyncTask(int userId, std::stringstream&& stream, TCallback callback)
+    : _userId(userId)
+    , _stream(std::move(stream))
     , _callback(std::move(callback))
 {
 }

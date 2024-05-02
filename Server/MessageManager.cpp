@@ -11,34 +11,24 @@ using namespace std;
 
 void MessageManager::sendMessage(int sender, int receiver, const std::string& message)
 {
-    const int originalSender = sender;
-    
-    if (sender > receiver)
-    {
-        swap(sender, receiver);
-    }
-    
-    const string messageDir = Paths::messagesPath + '\\' + to_string(sender) + '_' + to_string(receiver);
-    std::filesystem::create_directories(messageDir);
+    const time_t now = chrono::system_clock::to_time_t(chrono::system_clock::now());
+    const Message messageObj{ sender, message, now };
 
-    const size_t messagesNum = distance(filesystem::directory_iterator(messageDir), filesystem::directory_iterator{});
-
-    time_t now = chrono::system_clock::to_time_t(chrono::system_clock::now());
-    Message messageObj{ originalSender, message, now };
-    
-    ofstream out(messageDir + '\\' + to_string(messagesNum));
-    if (!out.is_open())
+    const int messageId = saveMessage(receiver, messageObj);
+    if (messageId == -1)
     {
+        std::cout << "Failed to save message" << std::endl;
         return;
     }
-
-    out << messageObj;
-
-    if (messagesNum == 0)
+    
+    if (messageId == 0)
     {
         newContact(sender, receiver);
         newContact(receiver, sender);
+        saveDialogState({ receiver, sender, -1 });
     }
+
+    saveDialogState({ sender, receiver, static_cast<int>(messageId) });    
 }
 
 Message MessageManager::getMessage(int sender, int receiver, int messageId)
@@ -63,13 +53,6 @@ Message MessageManager::getMessage(int sender, int receiver, int messageId)
 
 std::vector<Message> MessageManager::getMessages(int sender, int receiver, int fromId)
 {
-    if (sender > receiver)
-    {
-        swap(sender, receiver);
-    }
-
-    const string messageDir = Paths::messagesPath + '\\' + to_string(sender) + '_' + to_string(receiver);
-
     vector<Message> messages;
 
     while (true)
@@ -87,7 +70,36 @@ std::vector<Message> MessageManager::getMessages(int sender, int receiver, int f
     return messages;
 }
 
-std::vector<int> MessageManager::getContacts(int userId)
+DialogState MessageManager::getDialogState(int userId, int contactId)
+{
+    DialogState dialogState{ userId, contactId };
+    const string contactsDir = Paths::usersPath + "\\C" + to_string(dialogState.userId);
+    std::filesystem::create_directories(contactsDir);
+
+    ifstream stream(contactsDir + "\\" + to_string(dialogState.contactId));
+    
+    if (stream.is_open())
+    {
+        stream >> dialogState.lastReadMessageId;
+    }
+    dialogState.totalMessages = getMessagesNum(userId, contactId);
+    
+    return dialogState;
+}
+
+void MessageManager::saveDialogState(const DialogState& dialogState)
+{
+    const string contactsDir = Paths::usersPath + "\\C" + to_string(dialogState.userId);
+    std::filesystem::create_directories(contactsDir);
+
+    ofstream stream(contactsDir + "\\" + to_string(dialogState.contactId));
+    if (stream.is_open())
+    {
+        stream << dialogState.lastReadMessageId;
+    }
+}
+
+std::vector<DialogState> MessageManager::getDialogStates(int userId)
 {
     const string contactsDir = Paths::usersPath + "\\C" + to_string(userId);
 
@@ -97,14 +109,50 @@ std::vector<int> MessageManager::getContacts(int userId)
         return {};
     }
 
-    vector<int> contactsVec;
-    int contact;
-    while (contacts >> contact)
+    vector<DialogState> dialogs;
+    
+    int contactId;
+    while (contacts >> contactId)
     {
-        contactsVec.push_back(contact);
+        dialogs.emplace_back(getDialogState(userId, contactId));
     }
 
-    return contactsVec;
+    return dialogs;
+}
+
+Message MessageManager::getLastMessage(int sender, int receiver)
+{
+    if (sender > receiver)
+    {
+        swap(sender, receiver);
+    }
+
+    const string messageDir = Paths::messagesPath + '\\' + to_string(sender) + '_' + to_string(receiver);
+    std::filesystem::create_directories(messageDir);
+
+    const size_t messagesNum = distance(filesystem::directory_iterator(messageDir), filesystem::directory_iterator{});
+    return getMessage(sender, receiver, static_cast<int>(messagesNum) - 1);
+}
+
+int MessageManager::saveMessage(int receiver, const Message& message)
+{
+    const int dirFirst = std::min(message.sender, receiver);
+    const int dirSecond = std::max(message.sender, receiver);
+    
+    const string messageDir = Paths::messagesPath + '\\' + to_string(dirFirst) + '_' + to_string(dirSecond);
+    std::filesystem::create_directories(messageDir);
+
+    const size_t messagesNum = distance(filesystem::directory_iterator(messageDir), filesystem::directory_iterator{});
+    
+    ofstream out(messageDir + '\\' + to_string(messagesNum));
+    if (!out.is_open())
+    {
+        return -1;
+    }
+
+    out << message;
+
+    return static_cast<int>(messagesNum);
 }
 
 void MessageManager::newContact(int sender, int receiver)
@@ -112,9 +160,22 @@ void MessageManager::newContact(int sender, int receiver)
     const string contactsDir = Paths::usersPath + "\\C" + to_string(sender);
     std::filesystem::create_directories(contactsDir);
 
-    ofstream contact1(contactsDir + "\\contacts", ios::app);
-    if (contact1.is_open())
+    ofstream contact(contactsDir + "\\contacts", ios::app);
+    if (contact.is_open())
     {
-        contact1 << receiver << '\n';
+        contact << receiver << '\n';
     }
+}
+
+int MessageManager::getMessagesNum(int userA, int userB)
+{
+    if (userA > userB)
+    {
+        swap(userA, userB);
+    }
+
+    const string messageDir = Paths::messagesPath + '\\' + to_string(userA) + '_' + to_string(userB);
+    std::filesystem::create_directories(messageDir);
+
+    return distance(filesystem::directory_iterator(messageDir), filesystem::directory_iterator{});
 }

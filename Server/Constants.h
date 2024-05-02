@@ -18,6 +18,7 @@ namespace Errors
     constexpr int invalidCredentials = -2;
     constexpr int userAlreadyExists = -3;
     constexpr int noSuchMessage = -4;
+    constexpr int unauthorized = -5;
 }
 
 namespace Constants
@@ -35,5 +36,7 @@ enum class RequestType : int
     SendMessageTo,
     GetMessageTo,
     GetMessages,
-    GetContacts,
+    FetchDialogStates,
+    GetLastMessages,
+    UpdateDialogState,
 };

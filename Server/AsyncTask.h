@@ -5,8 +5,6 @@
 #include <functional>
 #include <sstream>
 
-class Server;
-
 class AsyncTask
 {
 public:
@@ -40,9 +38,10 @@ class StreamAsyncTask : public AsyncTask
 public:
     using TCallback = std::function<void(std::string)>;
     
-    StreamAsyncTask(std::stringstream&& stream, TCallback callback);
+    StreamAsyncTask(int userId, std::stringstream&& stream, TCallback callback);
 
 protected:
+    int _userId = -1;
     std::stringstream _stream;
     TCallback _callback;
 };

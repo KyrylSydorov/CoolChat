@@ -173,6 +173,7 @@
     <ClInclude Include="MessageManager.h" />
     <ClInclude Include="Pool\SafePool.h" />
     <ClInclude Include="Pool\SharedFromThis.h" />
+    <ClInclude Include="SerializationHelpers.h" />
     <ClInclude Include="Server.h" />
     <ClInclude Include="Session.h" />
     <ClInclude Include="UserManager.h" />

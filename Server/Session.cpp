@@ -17,6 +17,151 @@ Session::Session(Server& server, SOCKET clientSocket)
 {
 }
 
+void Session::processAuthorizedRequest(std::stringstream&& ss)
+{
+    int requestTypeInt = static_cast<int>(RequestType::Invalid);
+    ss >> requestTypeInt;
+    
+    function callback = [wThis = weak_from_this()](string response)
+    {
+        if (wThis.expired())
+        {
+            return;
+        }
+
+        const shared_ptr<Session> This = wThis.lock();        
+        This->send(move(response));
+    };
+
+    switch (static_cast<RequestType>(requestTypeInt))
+    {
+    case RequestType::GetUserInfo:
+        {
+            _server.getTaskManager().addTask(make_shared<AsyncTaskGetUserInfo>(_currentUserId, move(ss), move(callback)));
+            break;
+        }
+    case RequestType::GetMessages:
+        {
+            _server.getTaskManager().addTask(make_shared<AsyncTaskGetMessages>(_currentUserId, move(ss), move(callback)));
+            break;
+        }
+    case RequestType::SendMessageTo:
+        {
+            _server.getTaskManager().addTask(make_shared<AsyncTaskSendMessage>(_currentUserId, move(ss), move(callback)));
+            break;
+        }
+    case RequestType::GetMessageTo:
+        {
+            _server.getTaskManager().addTask(make_shared<AsyncTaskGetMessage>(_currentUserId, move(ss), move(callback)));
+            break;
+        }
+    case RequestType::FetchDialogStates:
+        {
+            _server.getTaskManager().addTask(make_shared<AsyncTaskFetchDialogStates>(_currentUserId, move(ss), move(callback)));
+            break;
+        }
+    case RequestType::GetLastMessages:
+        {
+            _server.getTaskManager().addTask(make_shared<AsyncTaskGetLastMessages>(_currentUserId, move(ss), move(callback)));
+            break;
+        }
+    case RequestType::UpdateDialogState:
+        {
+            _server.getTaskManager().addTask(make_shared<AsyncTaskUpdateDialogState>(_currentUserId, move(ss), move(callback)));
+            break;
+        }
+    default:
+        {
+            stringstream response;
+            response << static_cast<int>(RequestType::Invalid) << ' ' << Errors::internalError;
+            send(move(response).str());
+            break;
+        }
+    }
+}
+
+void Session::processUnauthorizedRequest(std::stringstream&& ss)
+{
+    int requestTypeInt = static_cast<int>(RequestType::Invalid);
+    ss >> requestTypeInt;
+
+    function loginCallback = [wThis = weak_from_this()](string response)
+    {
+        if (wThis.expired())
+        {
+            return;
+        }
+
+        const shared_ptr<Session> This = wThis.lock();
+
+        stringstream ss(response);
+        
+        int responseType;
+        ss >> responseType;
+
+        int errorCode;
+        ss >> errorCode;
+
+        if (errorCode == Errors::success)
+        {
+            // Authorization successful
+            UserInfo userInfo;
+            ss >> userInfo;
+
+            This->_currentUserId = userInfo.hashedNickname;
+        }
+        
+        This->send(move(response));
+    };
+    
+    function registerCallback = [wThis = weak_from_this()](string response)
+    {
+        if (wThis.expired())
+        {
+            return;
+        }
+
+        const shared_ptr<Session> This = wThis.lock();
+
+        stringstream ss(response);
+        
+        int responseType;
+        ss >> responseType;
+
+        int errorCode;
+        ss >> errorCode;
+
+        if (errorCode == Errors::success)
+        {
+            // Authorization successful
+            ss >> This->_currentUserId;
+        }
+        
+        This->send(move(response));
+    };
+
+    switch (static_cast<RequestType>(requestTypeInt))
+    {
+    case RequestType::Login:
+        {
+            _server.getTaskManager().addTask(make_shared<AsyncTaskLogin>(move(ss), move(loginCallback)));
+            break;
+        }
+    case RequestType::Register:
+        {
+            _server.getTaskManager().addTask(make_shared<AsyncTaskRegister>(move(ss), move(registerCallback)));
+            break;
+        }
+    default:
+        {
+            stringstream response;
+            response << requestTypeInt << ' ' << Errors::unauthorized;
+            send(move(response).str());
+            break;
+        }
+    }
+}
+
 shared_ptr<Session> Session::create(Server& server, SOCKET clientSocket)
 {
     Session* session = new Session(server, clientSocket);
@@ -25,7 +170,7 @@ shared_ptr<Session> Session::create(Server& server, SOCKET clientSocket)
 
 bool Session::isAuthorized() const
 {
-    return _currentUser.isValid();
+    return _currentUserId != -1;
 }
 
 void Session::receive()
@@ -35,6 +180,13 @@ void Session::receive()
     int msgLen = 0;
     int bytesRead = recv(_clientSocket, (char*)&msgLen, sizeof(msgLen), 0);
     if (bytesRead == 0 || (bytesRead < 0 && WSAGetLastError() != WSAEWOULDBLOCK))
+    {
+        _server.closeConnection(_clientSocket);
+        return;
+    }
+
+    constexpr int MaxMessageSize = 128 * 1024; // 128 KiB
+    if (msgLen < 0 || msgLen > MaxMessageSize)
     {
         _server.closeConnection(_clientSocket);
         return;
@@ -51,64 +203,14 @@ void Session::receive()
     }
     
     stringstream ss(message);
-    int requestTypeInt = static_cast<int>(RequestType::Invalid);
-    ss >> requestTypeInt;
 
-    function callback = [wThis = weak_from_this()](string response)
+    if (isAuthorized())
     {
-        if (wThis.expired())
-        {
-            return;
-        }
-
-        const shared_ptr<Session> This = wThis.lock();        
-        This->send(move(response));
-    };
-
-    switch (static_cast<RequestType>(requestTypeInt))
+        processAuthorizedRequest(move(ss));
+    }
+    else
     {
-        case RequestType::Login:
-        {
-            _server.getTaskManager().addTask(make_shared<AsyncTaskLogin>(move(ss), move(callback)));
-            break;
-        }
-        case RequestType::Register:
-        {
-            _server.getTaskManager().addTask(make_shared<AsyncTaskRegister>(move(ss), move(callback)));
-            break;
-        }
-        case RequestType::GetUserInfo:
-        {
-            _server.getTaskManager().addTask(make_shared<AsyncTaskGetUserInfo>(move(ss), move(callback)));
-            break;
-        }
-        case RequestType::GetMessages:
-        {
-            _server.getTaskManager().addTask(make_shared<AsyncTaskGetMessages>(move(ss), move(callback)));
-            break;
-        }
-        case RequestType::SendMessageTo:
-        {
-            _server.getTaskManager().addTask(make_shared<AsyncTaskSendMessage>(move(ss), move(callback)));
-            break;
-        }
-        case RequestType::GetContacts:
-        {
-            _server.getTaskManager().addTask(make_shared<AsyncTaskGetContacts>(move(ss), move(callback)));
-            break;
-        }
-        case RequestType::GetMessageTo:
-        {
-            _server.getTaskManager().addTask(make_shared<AsyncTaskGetMessage>(move(ss), move(callback)));
-            break;
-        }
-        default:
-        {
-            stringstream response;
-            response << static_cast<int>(RequestType::Invalid) << ' ' << Errors::internalError;
-            send(move(response).str());
-            break;
-        }
+        processUnauthorizedRequest(move(ss));
     }
 
     _receivingInProgress = false;

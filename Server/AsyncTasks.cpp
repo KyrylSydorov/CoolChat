@@ -2,6 +2,7 @@
 
 #include "AsyncTasks.h"
 #include "Constants.h"
+#include "SerializationHelpers.h"
 #include "Server.h"
 #include "UserManager.h"
 #include "MessageManager.h"
@@ -9,7 +10,7 @@
 using namespace std;
 
 AsyncTaskLogin::AsyncTaskLogin(std::stringstream&& stream, TCallback callback)
-    : StreamAsyncTask(std::move(stream), std::move(callback))
+    : StreamAsyncTask(-1, std::move(stream), std::move(callback))
 {
 }
 
@@ -41,7 +42,7 @@ void AsyncTaskLogin::execute()
 }
 
 AsyncTaskRegister::AsyncTaskRegister(std::stringstream&& stream, TCallback callback)
-    : StreamAsyncTask(std::move(stream), std::move(callback))
+    : StreamAsyncTask(-1, std::move(stream), std::move(callback))
 {
 }
 
@@ -65,8 +66,8 @@ void AsyncTaskRegister::execute()
     cout << "User registered\n";
 }
 
-AsyncTaskGetUserInfo::AsyncTaskGetUserInfo(std::stringstream&& stream, TCallback callback)
-    : StreamAsyncTask(std::move(stream), std::move(callback))
+AsyncTaskGetUserInfo::AsyncTaskGetUserInfo(int userId, std::stringstream&& stream, TCallback callback)
+    : StreamAsyncTask(userId, std::move(stream), std::move(callback))
 {
 }
 
@@ -87,43 +88,16 @@ void AsyncTaskGetUserInfo::execute()
     cout << "User get info\n";
 }
 
-AsyncTaskGetContacts::AsyncTaskGetContacts(std::stringstream&& stream, TCallback callback)
-    : StreamAsyncTask(std::move(stream), std::move(callback))
-{
-}
-
-void AsyncTaskGetContacts::execute()
-{
-    int id;
-    _stream >> id;
-
-    vector<int> contacts = MessageManager::getContacts(id);
-
-    stringstream ss;
-    ss << static_cast<int>(RequestType::GetContacts) << ' ' << Errors::success << ' ' << contacts.size();
-
-    for (const int contactId : contacts)
-    {
-        ss << ' ' << contactId;
-    }
-
-    _callback(move(ss).str());
-    finish(true);
-
-    cout << "User get contacts\n";
-}
-
-AsyncTaskSendMessage::AsyncTaskSendMessage(std::stringstream&& stream, TCallback callback)
-    : StreamAsyncTask(std::move(stream), std::move(callback))
+AsyncTaskSendMessage::AsyncTaskSendMessage(int userId, std::stringstream&& stream, TCallback callback)
+    : StreamAsyncTask(userId, std::move(stream), std::move(callback))
 {
 }
 
 void AsyncTaskSendMessage::execute()
 {
-    int senderId;
     int receiverId;
     string message;
-    _stream >> senderId >> receiverId;
+    _stream >> receiverId;
     getline(_stream, message);
 
     UserInfo receiver = UserManager::getUserInfo(receiverId);
@@ -134,7 +108,7 @@ void AsyncTaskSendMessage::execute()
         return;
     }
 
-    MessageManager::sendMessage(senderId, receiverId, message);
+    MessageManager::sendMessage(_userId, receiverId, message);
 
     _callback(to_string(static_cast<int>(RequestType::SendMessageTo)) + ' ' + to_string(Errors::success));
     finish(true);
@@ -142,19 +116,18 @@ void AsyncTaskSendMessage::execute()
     //cout << "User send message\n";
 }
 
-AsyncTaskGetMessage::AsyncTaskGetMessage(std::stringstream&& stream, TCallback callback)
-    : StreamAsyncTask(std::move(stream), std::move(callback))
+AsyncTaskGetMessage::AsyncTaskGetMessage(int userId, std::stringstream&& stream, TCallback callback)
+    : StreamAsyncTask(userId, std::move(stream), std::move(callback))
 {
 }
 
 void AsyncTaskGetMessage::execute()
 {
-    int senderId;
-    int receiverId;
+    int contactId;
     int messageId;
-    _stream >> senderId >> receiverId >> messageId;
+    _stream >> contactId >> messageId;
 
-    Message message = MessageManager::getMessage(senderId, receiverId, messageId);
+    const Message message = MessageManager::getMessage(_userId, contactId, messageId);
 
     stringstream ss;
     ss << static_cast<int>(RequestType::GetMessageTo) << ' ';
@@ -174,19 +147,18 @@ void AsyncTaskGetMessage::execute()
     cout << "User get message\n";
 }
 
-AsyncTaskGetMessages::AsyncTaskGetMessages(std::stringstream&& stream, TCallback callback)
-    : StreamAsyncTask(std::move(stream), std::move(callback))
+AsyncTaskGetMessages::AsyncTaskGetMessages(int userId, std::stringstream&& stream, TCallback callback)
+    : StreamAsyncTask(userId, std::move(stream), std::move(callback))
 {
 }
 
 void AsyncTaskGetMessages::execute()
 {
-    int senderId;
-    int receiverId;
+    int contactId;
     int fromId;
-    _stream >> senderId >> receiverId >> fromId;
+    _stream >> contactId >> fromId;
 
-    vector<Message> messages = MessageManager::getMessages(senderId, receiverId, fromId);
+    const vector<Message> messages = MessageManager::getMessages(_userId, contactId, fromId);
 
     stringstream ss;
     ss << static_cast<int>(RequestType::GetMessages) << ' ' << Errors::success << ' ' << messages.size() << '\n';
@@ -200,4 +172,79 @@ void AsyncTaskGetMessages::execute()
     finish(true);
 
     cout << "User get all messages\n";
+}
+
+AsyncTaskFetchDialogStates::AsyncTaskFetchDialogStates(int userId, std::stringstream&& stream, TCallback callback)
+    : StreamAsyncTask(userId, std::move(stream), std::move(callback))
+{
+}
+
+void AsyncTaskFetchDialogStates::execute()
+{
+    const vector<DialogState> dialogStates = MessageManager::getDialogStates(_userId);
+
+    stringstream ss;
+    ss  << static_cast<int>(RequestType::FetchDialogStates) << ' '
+        << Errors::success << ' '
+        << dialogStates;
+    
+    _callback(move(ss).str());
+    finish(true);
+
+    cout << "User fetch dialog states\n";
+}
+
+AsyncTaskGetLastMessages::AsyncTaskGetLastMessages(int userId, std::stringstream&& stream, TCallback callback)
+    : StreamAsyncTask(userId, std::move(stream), std::move(callback))
+{
+}
+
+void AsyncTaskGetLastMessages::execute()
+{
+    std::vector<int> contactIds;
+    _stream >> contactIds;
+
+    std::vector<std::pair<int, Message>> result;
+    for (int contactId : contactIds)
+    {
+        Message message = MessageManager::getLastMessage(_userId, contactId);
+        if (message.sender != -1)
+        {
+            result.emplace_back(contactId, move(message));
+        }
+    }
+    
+    stringstream ss;
+    ss << static_cast<int>(RequestType::GetLastMessages) << ' ' << Errors::success << ' ' << result.size() << '\n';
+    for (const auto& [contactId, message] : result)
+    {
+        ss << contactId << ' ' << message << '\n';
+    }
+
+    _callback(move(ss).str());
+    finish(true);
+
+    cout << "User get last messages\n";
+}
+
+AsyncTaskUpdateDialogState::AsyncTaskUpdateDialogState(int userId, std::stringstream&& stream, TCallback callback)
+    : StreamAsyncTask(userId, std::move(stream), std::move(callback))
+{
+}
+
+void AsyncTaskUpdateDialogState::execute()
+{
+    int contactId;
+    int lastReadMessageId;
+    _stream >> contactId >> lastReadMessageId;
+
+    MessageManager::saveDialogState({ _userId, contactId, lastReadMessageId });
+
+    stringstream ss;
+    ss << static_cast<int>(RequestType::UpdateDialogState) << ' ' << Errors::success;
+    
+    _callback(move(ss).str());
+    finish(true);
+
+    cout << "User update dialog state\n";
 }
