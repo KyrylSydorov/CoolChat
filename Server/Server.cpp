@@ -97,7 +97,7 @@ void Server::runServer()
         timeout.tv_sec = 1; // 1 second timeout
         timeout.tv_usec = 0;
         
-        const int activity = select(_maxSocket + 1, &readFds, &_writeSet, NULL, &timeout);
+        const int activity = select(static_cast<int>(_maxSocket) + 1, &readFds, &_writeSet, NULL, &timeout);
 
         if (activity < 0 && errno != EINTR)
         {

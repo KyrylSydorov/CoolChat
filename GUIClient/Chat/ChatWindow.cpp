@@ -4,7 +4,6 @@
 #include "MessageWidget.h"
 #include "../Connection/Client.h"
 #include "../Connection/DialogUpdateWorker.h"
-#include "../Connection/MessagesUpdateWorker.h"
 #include "../../Server/Constants.h"
 
 #include "ui_ChatWindow.h"

@@ -292,8 +292,7 @@ const std::vector<Dialog>& Client::getDialogs() const
 
 std::string Client::serverRequest(std::string request)
 {
-    static std::mutex mutex;
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(_serverRequestMutex);
     int msgLen = request.size();
     int iResult = send(_socket, (char*)&msgLen, sizeof(msgLen), 0);
     if (iResult == SOCKET_ERROR)

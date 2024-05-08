@@ -220,7 +220,7 @@ void Session::send(string message)
 {
     _sendingInProgress = true;
 
-    int msgLen = message.size();
+    int msgLen = static_cast<int>(message.size());
     
     int bytesSent = ::send(_clientSocket, (char*) &msgLen, sizeof(msgLen), 0);
     if (bytesSent == 0 || (bytesSent < 0 && WSAGetLastError() != WSAEWOULDBLOCK))
@@ -229,7 +229,7 @@ void Session::send(string message)
         return;
     }
 
-    bytesSent = ::send(_clientSocket, message.c_str(), message.size(), 0);
+    bytesSent = ::send(_clientSocket, message.c_str(), msgLen, 0);
     if (bytesSent == 0 || (bytesSent < 0 && WSAGetLastError() != WSAEWOULDBLOCK))
     {
         _server.closeConnection(_clientSocket);

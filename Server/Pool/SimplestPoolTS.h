@@ -4,30 +4,28 @@
 
 #include <cassert>
 #include <memory>
+#include <mutex>
 #include <vector>
 #include <xutility>
 
-#include "SharedFromThis.h"
-
 using std::move;
-using std::shared_ptr;
 using std::unique_ptr;
 using std::vector;
-using std::weak_ptr;
 
+/**
+ * Thread-safe implementation of a SimplestPool
+ */
 template <typename T>
-class SafePool : public SharedFromThis<SafePool<T>>
+class SimplestPoolTS
 {
-	friend class SharedFromThis<SafePool<T>>;
-
 public:
 	class Proxy
 	{
 	private:
-		friend class SafePool<T>;
-		Proxy(weak_ptr<SafePool<T>> pool, unique_ptr<T> obj = nullptr);
+		friend class SimplestPoolTS<T>;
+		Proxy(SimplestPoolTS<T>& pool, unique_ptr<T> obj = nullptr);
 
-		weak_ptr<SafePool<T>> _pool;
+		SimplestPoolTS<T>& _pool;
 		unique_ptr<T> _object;
 
 	public:
@@ -45,63 +43,59 @@ public:
 		Proxy& operator=(const Proxy&) = delete;
 	};
 
-	~SafePool();
+	SimplestPoolTS(const int size);
+	~SimplestPoolTS();
 
 	// Delete copying and moving
-	SafePool(const SafePool&) = delete;
-	SafePool(SafePool&&) = delete;
-	SafePool& operator=(const SafePool&) = delete;
-	SafePool& operator=(SafePool&&) = delete;
+	SimplestPoolTS(const SimplestPoolTS&) = delete;
+	SimplestPoolTS(SimplestPoolTS&&) = delete;
+	SimplestPoolTS& operator=(const SimplestPoolTS&) = delete;
+	SimplestPoolTS& operator=(SimplestPoolTS&&) = delete;
 
 	void push(unique_ptr<T> object);
 	Proxy pull();
 
-protected:
-	SafePool(const int size);
-
 private:
 	vector<unique_ptr<T>> _objects;
+	std::mutex _mutex;
 };
 
 template<typename T>
-SafePool<T>::Proxy::Proxy(weak_ptr<SafePool<T>> pool, unique_ptr<T> object)
+SimplestPoolTS<T>::Proxy::Proxy(SimplestPoolTS<T>& pool, unique_ptr<T> object)
 	: _pool(pool)
 	, _object(move(object))
 {
 }
 
 template<typename T>
-SafePool<T>::Proxy::~Proxy()
+SimplestPoolTS<T>::Proxy::~Proxy()
 {
 	if (_object)
 	{
-		if (!_pool.expired())
-		{
-			_pool.lock()->push(move(_object));
-		}
+		_pool.push(move(_object));
 	}
 }
 
 template<typename T>
-T* SafePool<T>::Proxy::operator->()
+T* SimplestPoolTS<T>::Proxy::operator->()
 {
 	return _object.get();
 }
 
 template<typename T>
-T& SafePool<T>::Proxy::operator*()
+T& SimplestPoolTS<T>::Proxy::operator*()
 {
 	return *_object;
 }
 
 template<typename T>
-SafePool<T>::Proxy::operator bool() const
+SimplestPoolTS<T>::Proxy::operator bool() const
 {
 	return _object != nullptr;
 }
 
 template <typename T>
-SafePool<T>::SafePool(const int size)
+SimplestPoolTS<T>::SimplestPoolTS(const int size)
 {
 	_objects.reserve(size);
 	for (int i = 0; i < size; ++i)
@@ -111,14 +105,15 @@ SafePool<T>::SafePool(const int size)
 }
 
 template <typename T>
-SafePool<T>::~SafePool()
+SimplestPoolTS<T>::~SimplestPoolTS()
 {
 }
 
 template <typename T>
-void SafePool<T>::push(unique_ptr<T> object)
+void SimplestPoolTS<T>::push(unique_ptr<T> object)
 {
 	assert(object != nullptr);
+	std::lock_guard lock(_mutex);
 	if (_objects.size() < _objects.capacity())
 	{
 		_objects.push_back(move(object));
@@ -126,15 +121,16 @@ void SafePool<T>::push(unique_ptr<T> object)
 }
 
 template <typename T>
-typename SafePool<T>::Proxy SafePool<T>::pull()
+typename SimplestPoolTS<T>::Proxy SimplestPoolTS<T>::pull()
 {
+	std::lock_guard lock(_mutex);
 	if (_objects.empty())
 	{
-		return { this->asWeak(), nullptr };
+		return { *this, nullptr };
 	}
 
 	unique_ptr<T> object = move(_objects.back());
 	_objects.pop_back();
 
-	return { this->asWeak(), move(object) };
+	return { *this, move(object) };
 }

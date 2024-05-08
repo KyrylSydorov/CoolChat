@@ -60,4 +60,5 @@ private:
     std::vector<Dialog> _cachedDialogs;
 
     mutable std::shared_mutex _rwLock;
+    std::mutex _serverRequestMutex;
 };

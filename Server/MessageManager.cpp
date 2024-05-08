@@ -177,5 +177,5 @@ int MessageManager::getMessagesNum(int userA, int userB)
     const string messageDir = Paths::messagesPath + '\\' + to_string(userA) + '_' + to_string(userB);
     std::filesystem::create_directories(messageDir);
 
-    return distance(filesystem::directory_iterator(messageDir), filesystem::directory_iterator{});
+    return static_cast<int>(distance(filesystem::directory_iterator(messageDir), filesystem::directory_iterator{}));
 }
