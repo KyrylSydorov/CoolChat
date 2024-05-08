@@ -355,7 +355,7 @@ void Client::initializeClientSocket()
     sockaddr_in serverInfo;
     serverInfo.sin_family = AF_INET;
     serverInfo.sin_port = htons(12345); // Server's listening port
-    if (inet_pton(AF_INET, "127.0.0.1", &serverInfo.sin_addr) <= 0)
+    if (inet_pton(AF_INET, "192.168.0.111", &serverInfo.sin_addr) <= 0)
     {  
         std::cerr << "Invalid address/ Address not supported " << std::endl;
         closesocket(_socket);

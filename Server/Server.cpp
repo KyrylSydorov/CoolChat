@@ -54,7 +54,7 @@ void Server::createListeningSocket()
     sockaddr_in service;
     service.sin_family = AF_INET;
     service.sin_port = htons(12345); // Listening port
-    inet_pton(AF_INET, "127.0.0.1", &service.sin_addr);
+    inet_pton(AF_INET, "192.168.0.111", &service.sin_addr);
 
     if (bind(_listenSocket, (SOCKADDR*)&service, sizeof(service)) == SOCKET_ERROR)
     {
